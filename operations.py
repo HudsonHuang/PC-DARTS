@@ -1,8 +1,11 @@
 import torch
 import torch.nn as nn
+from mixbatch import MixBatch
 
 OPS = {
   'none' : lambda C, stride, affine: Zero(stride),
+  'mixsep': lambda C, stride, affine: MBSepConv(C, C, 3, stride, 1, affine=affine) if stride == 1 else MixBatchFactorizedReduce(C, C, affine=affine),
+  'mixbatch': lambda C, stride, affine: MixBatch() if stride == 1 else MixBatchFactorizedReduce(C, C, affine=affine),
   'avg_pool_3x3' : lambda C, stride, affine: nn.AvgPool2d(3, stride=stride, padding=1, count_include_pad=False),
   'max_pool_3x3' : lambda C, stride, affine: nn.MaxPool2d(3, stride=stride, padding=1),
   'skip_connect' : lambda C, stride, affine: Identity() if stride == 1 else FactorizedReduce(C, C, affine=affine),
@@ -18,6 +21,7 @@ OPS = {
     nn.BatchNorm2d(C, affine=affine)
     ),
 }
+
 
 class ReLUConvBN(nn.Module):
 
@@ -66,6 +70,15 @@ class SepConv(nn.Module):
     return self.op(x)
 
 
+
+class MBSepConv(SepConv):
+  def __init__(self, C_in, C_out, kernel_size, stride, padding, affine=True):
+    super(MBSepConv, self).__init__(C_in, C_out, kernel_size, stride, padding, affine=True)
+    self.mb = MixBatch()
+    
+  def forward(self, x):
+    return self.op(self.mb(x))
+
 class Identity(nn.Module):
 
   def __init__(self):
@@ -103,3 +116,16 @@ class FactorizedReduce(nn.Module):
     out = self.bn(out)
     return out
 
+
+class MixBatchFactorizedReduce(FactorizedReduce):
+
+  def __init__(self, C_in, C_out, affine=True):
+    super(MixBatchFactorizedReduce, self).__init__(C_in, C_out, affine)
+    self.mb = MixBatch()
+
+  def forward(self, x):
+    x = self.relu(x)
+    out = torch.cat([self.conv_1(x), self.conv_2(x[:,:,1:,1:])], dim=1)
+    out = self.bn(out)
+    out = self.mb(out)
+    return out
