@@ -77,7 +77,7 @@ class MBSepConv(SepConv):
     self.mb = MixBatch()
     
   def forward(self, x):
-    return self.op(self.mb(x))
+    return self.mb(self.op(x))
 
 class Identity(nn.Module):
 
