@@ -81,3 +81,4 @@ PC_DARTS_image = Genotype(normal=[('skip_connect', 1), ('sep_conv_3x3', 0), ('se
 
 PCDARTS = PC_DARTS_cifar
 
+mixbatch_sepconv_PCDARTS_cifar = Genotype(normal=[('mixbatch', 0), ('sep_conv_3x3', 1), ('mixbatch', 2), ('mixbatch', 0), ('mixbatch', 2), ('mixbatch', 0), ('mixbatch', 0), ('sep_conv_3x3', 1)], normal_concat=range(2, 6), reduce=[('max_pool_3x3', 0), ('sep_conv_3x3', 1), ('sep_conv_3x3', 1), ('skip_connect', 0), ('dil_conv_5x5', 2), ('sep_conv_3x3', 1), ('dil_conv_5x5', 2), ('skip_connect', 1)], reduce_concat=range(2, 6)) # +0.4%
